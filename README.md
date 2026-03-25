@@ -24,7 +24,7 @@ It’s quick, simple, and meant to give a rough idea based on historical pattern
 * The model makes a prediction
 * The result is displayed instantly
 
-Nothing fancy — just a clean pipeline from input → prediction.
+Nothing fancy - just a clean pipeline from input → prediction.
 
 ---
 
@@ -33,7 +33,7 @@ Nothing fancy — just a clean pipeline from input → prediction.
 * Python
 * scikit-learn
 * pandas / numpy
-* (your app framework — Streamlit or Flask)
+* (your app framework - Streamlit or Flask)
 
 ---
 
@@ -80,7 +80,7 @@ python app.py
 * Trained on historical F1-style data
 * Output is binary: DNF / No DNF
 
-This isn’t meant to be perfectly accurate — more of an exploration into how unpredictable F1 can be.
+This isn’t meant to be perfectly accurate - more of an exploration into how unpredictable F1 can be.
 
 ---
 
@@ -98,10 +98,10 @@ This isn’t meant to be perfectly accurate — more of an exploration into how 
 Made by **Krish Kubadia**
 
 I like building things with ML, but more importantly, understanding *why* they work.
-Big F1 fan — especially the strategy, chaos, and everything that happens off-camera.
+Big F1 fan, especially the strategy, chaos, and everything that happens off-camera.
 
 ---
 
 ## If you found this interesting
 
-Give it a star — or feel free to suggest improvements.
+Give it a star - or feel free to suggest improvements.
