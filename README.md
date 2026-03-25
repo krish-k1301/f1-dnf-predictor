@@ -2,7 +2,7 @@
 
 This project predicts whether a Formula 1 driver is likely to **DNF (Did Not Finish)** a race using machine learning.
 
-I’ve always been a huge F1 fan - especially interested in what happens **behind the scenes**: strategy calls, mechanical failures, race conditions, and all the small factors that can completely change an outcome.
+I’ve always been a huge F1 fan, especially interested in what happens **behind the scenes**: strategy calls, mechanical failures, race conditions, and all the small factors that can completely change an outcome.
 This project is my attempt to explore that side of the sport through data.
 
 ---
