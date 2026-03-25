@@ -1,4 +1,4 @@
-# 🏎️ F1 DNF Predictor
+#  F1 DNF Predictor🏎️
 
 This project predicts whether a Formula 1 driver is likely to **DNF (Did Not Finish)** a race using machine learning.
 
@@ -7,17 +7,17 @@ This project is my attempt to explore that side of the sport through data.
 
 ---
 
-## 🚀 What this does
+##  What this does
 
 You input a few race/driver details, and the model predicts:
 
-👉 **DNF or No DNF**
+ **DNF or No DNF**
 
 It’s quick, simple, and meant to give a rough idea based on historical patterns.
 
 ---
 
-## 🧠 How it works
+##  How it works
 
 * A trained ML model (`classifier.pkl`) is loaded
 * User inputs are processed into the right format
@@ -28,7 +28,7 @@ Nothing fancy — just a clean pipeline from input → prediction.
 
 ---
 
-## 🛠️ Tech used
+##  Tech used
 
 * Python
 * scikit-learn
@@ -37,7 +37,7 @@ Nothing fancy — just a clean pipeline from input → prediction.
 
 ---
 
-## 📂 Project structure
+##  Project structure
 
 ```
 f1-dnf-predictor/
@@ -49,7 +49,7 @@ f1-dnf-predictor/
 
 ---
 
-## ⚙️ Running it locally
+## Running it locally
 
 Clone the repo:
 
@@ -74,7 +74,7 @@ python app.py
 
 ---
 
-## 📈 Notes about the model
+## Notes about the model
 
 * It’s a basic classification model
 * Trained on historical F1-style data
@@ -84,7 +84,7 @@ This isn’t meant to be perfectly accurate — more of an exploration into how 
 
 ---
 
-## 🔮 What I’d improve next
+## What I’d improve next
 
 * Better feature engineering
 * More realistic / larger dataset
@@ -93,7 +93,7 @@ This isn’t meant to be perfectly accurate — more of an exploration into how 
 
 ---
 
-## 👤 About me
+## About me
 
 Made by **Krish Kubadia**
 
@@ -102,6 +102,6 @@ Big F1 fan — especially the strategy, chaos, and everything that happens off-c
 
 ---
 
-## ⭐ If you found this interesting
+## If you found this interesting
 
 Give it a star — or feel free to suggest improvements.
