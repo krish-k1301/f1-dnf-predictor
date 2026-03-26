@@ -10,9 +10,50 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- Load Model ---
+# --- Load Model & Data ---
+@st.cache_data
+def load_circuit_data():
+    df = pd.read_csv("f1_dnf.csv", usecols=["name", "circuitId", "lat", "lng", "alt"])
+    df = df.drop_duplicates(subset=["circuitId"]).dropna(subset=["name"])
+    df["lat"] = pd.to_numeric(df["lat"], errors="coerce").fillna(0.0)
+    df["lng"] = pd.to_numeric(df["lng"], errors="coerce").fillna(0.0)
+    df["alt"] = pd.to_numeric(df["alt"], errors="coerce").fillna(0.0)
+    df = df.sort_values(by="name")
+    return df.set_index("name").to_dict(orient="index")
+
+circuit_data = load_circuit_data()
+circuit_names = list(circuit_data.keys())
+
 with open("classifier.pkl", "rb") as file:
     model = pickle.load(file)
+
+@st.cache_data
+def load_performance_metrics():
+    df = pd.read_csv("f1_dnf.csv")
+    df['date'] = pd.to_datetime(df['date'], errors='coerce')
+    df['dob'] = pd.to_datetime(df['dob'], errors='coerce')
+    df['age_at_race'] = (df['date'] - df['dob']).dt.days / 365.25
+
+    df["lat"] = pd.to_numeric(df["lat"], errors="coerce").fillna(0.0)
+    df["lng"] = pd.to_numeric(df["lng"], errors="coerce").fillna(0.0)
+    df["alt"] = pd.to_numeric(df["alt"], errors="coerce").fillna(0.0)
+    df["points"] = pd.to_numeric(df["points"], errors="coerce").fillna(0.0)
+    df["laps"] = pd.to_numeric(df["laps"], errors="coerce").fillna(0.0)
+
+    features = ['year', 'round', 'grid', 'positionOrder', 'points', 'laps', 'circuitId', 'lat', 'lng', 'alt', 'age_at_race']
+    df = df.dropna(subset=features + ['target_finish'])
+
+    X = df[features]
+    y = df['target_finish']
+
+    y_pred = model.predict(X)
+    from sklearn.metrics import classification_report, accuracy_score, confusion_matrix
+    acc = accuracy_score(y, y_pred)
+    cm = confusion_matrix(y, y_pred)
+    rep = classification_report(y, y_pred, target_names=["FINISH", "DNF"], output_dict=True)
+    return acc, cm, rep
+
+perf_acc, perf_cm, perf_rep = load_performance_metrics()
 
 # --- Custom CSS ---
 st.markdown("""
@@ -282,10 +323,18 @@ with st.sidebar:
     laps          = st.number_input("Laps Completed",          min_value=0,   max_value=1000, value=50)
 
     st.markdown('<div class="sidebar-section-label">🗺️ Circuit</div>', unsafe_allow_html=True)
-    circuitId = st.number_input("Circuit ID",         min_value=1,   max_value=100, value=1)
-    lat       = st.number_input("Latitude",           value=0.0,     format="%.4f")
-    lng       = st.number_input("Longitude",          value=0.0,     format="%.4f")
-    alt       = st.number_input("Altitude (m)",       value=0.0,     format="%.1f")
+    selected_circuit = st.selectbox("Circuit Name", options=circuit_names)
+    
+    c_info = circuit_data[selected_circuit]
+    circuitId = int(c_info["circuitId"])
+    lat = float(c_info["lat"])
+    lng = float(c_info["lng"])
+    alt = float(c_info["alt"])
+
+    st.number_input("Circuit ID", value=circuitId, disabled=True)
+    st.number_input("Latitude", value=lat, format="%.4f", disabled=True)
+    st.number_input("Longitude", value=lng, format="%.4f", disabled=True)
+    st.number_input("Altitude (m)", value=alt, format="%.1f", disabled=True)
 
     st.markdown('<div class="sidebar-section-label">👤 Driver</div>', unsafe_allow_html=True)
     age_at_race = st.number_input("Age at Race", min_value=15.0, max_value=60.0, value=28.0, format="%.1f")
@@ -305,85 +354,111 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# Stats strip
-st.markdown("""
-<div class="feature-grid">
-    <div class="feature-card">
-        <div class="value">11</div>
-        <div class="label">Input Features</div>
-    </div>
-    <div class="feature-card">
-        <div class="value">2</div>
-        <div class="label">Outcomes</div>
-    </div>
-    <div class="feature-card">
-        <div class="value">1950–</div>
-        <div class="label">Data Range</div>
-    </div>
-</div>
-""", unsafe_allow_html=True)
+tab_predict, tab_perf = st.tabs(["🏎️ Predictor", "📊 Model Performance"])
 
-# Two-column layout
-col1, col2 = st.columns([1.1, 1], gap="large")
-
-with col1:
-    st.markdown('<div class="summary-header">📋 Input Summary</div>', unsafe_allow_html=True)
-    input_data = pd.DataFrame({
-        "year": [year], "round": [round_], "grid": [grid],
-        "positionOrder": [positionOrder], "points": [points], "laps": [laps],
-        "circuitId": [circuitId], "lat": [lat], "lng": [lng],
-        "alt": [alt], "age_at_race": [age_at_race]
-    })
-    st.dataframe(input_data.T.rename(columns={0: "Value"}), use_container_width=True, height=420)
-
-with col2:
-    st.markdown('<div class="summary-header">🔮 Prediction</div>', unsafe_allow_html=True)
-
-    if not predict_btn:
-        st.markdown("""
-        <div style='border: 1px dashed #222; border-radius: 8px; padding: 3rem 2rem;
-                    text-align: center; margin-top: 0;'>
-            <div style='font-size: 2.5rem; margin-bottom: 1rem;'>🏁</div>
-            <div style='font-family: Barlow Condensed, sans-serif; font-size: 0.7rem;
-                        letter-spacing: 0.2em; text-transform: uppercase; color: #333;'>
-                Awaiting race data
-            </div>
-            <div style='font-size: 0.8rem; color: #2a2a2a; margin-top: 0.5rem;'>
-                Fill in inputs and hit PREDICT
-            </div>
+with tab_predict:
+    # Stats strip
+    st.markdown("""
+    <div class="feature-grid">
+        <div class="feature-card">
+            <div class="value">11</div>
+            <div class="label">Input Features</div>
         </div>
-        """, unsafe_allow_html=True)
-    else:
-        try:
-            prediction = model.predict(input_data)[0]
-            if prediction == 1:
-                st.markdown("""
-                <div class="result-card result-dnf">
-                    <div class="result-icon">🚩</div>
-                    <div class="result-label">Prediction Result</div>
-                    <div class="result-title-dnf">DNF</div>
-                    <div style='font-family: Barlow Condensed, sans-serif; font-size: 1.1rem;
-                                color: #c0392b; letter-spacing: 0.1em; margin-top: 0.3rem;'>
-                        DID NOT FINISH
-                    </div>
-                    <div class="result-sub">The driver is predicted to retire from this race.</div>
+        <div class="feature-card">
+            <div class="value">2</div>
+            <div class="label">Outcomes</div>
+        </div>
+        <div class="feature-card">
+            <div class="value">1950–</div>
+            <div class="label">Data Range</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Two-column layout
+    col1, col2 = st.columns([1.1, 1], gap="large")
+
+    with col1:
+        st.markdown('<div class="summary-header">📋 Input Summary</div>', unsafe_allow_html=True)
+        input_data = pd.DataFrame({
+            "year": [year], "round": [round_], "grid": [grid],
+            "positionOrder": [positionOrder], "points": [points], "laps": [laps],
+            "circuitId": [circuitId], "lat": [lat], "lng": [lng],
+            "alt": [alt], "age_at_race": [age_at_race]
+        })
+        st.dataframe(input_data.T.rename(columns={0: "Value"}), use_container_width=True, height=420)
+
+    with col2:
+        st.markdown('<div class="summary-header">🔮 Prediction</div>', unsafe_allow_html=True)
+
+        if not predict_btn:
+            st.markdown("""
+            <div style='border: 1px dashed #222; border-radius: 8px; padding: 3rem 2rem;
+                        text-align: center; margin-top: 0;'>
+                <div style='font-size: 2.5rem; margin-bottom: 1rem;'>🏁</div>
+                <div style='font-family: Barlow Condensed, sans-serif; font-size: 0.7rem;
+                            letter-spacing: 0.2em; text-transform: uppercase; color: #333;'>
+                    Awaiting race data
                 </div>
-                """, unsafe_allow_html=True)
-            else:
-                st.markdown("""
-                <div class="result-card result-finish">
-                    <div class="result-icon">🏆</div>
-                    <div class="result-label">Prediction Result</div>
-                    <div class="result-title-finish">FINISH</div>
-                    <div style='font-family: Barlow Condensed, sans-serif; font-size: 1.1rem;
-                                color: #27ae60; letter-spacing: 0.1em; margin-top: 0.3rem;'>
-                        RACE COMPLETE
-                    </div>
-                    <div class="result-sub">The driver is predicted to finish the race.</div>
+                <div style='font-size: 0.8rem; color: #2a2a2a; margin-top: 0.5rem;'>
+                    Fill in inputs and hit PREDICT
                 </div>
-                """, unsafe_allow_html=True)
-        except Exception as e:
-            st.error(f"⚠️ Prediction error: {e}")
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            try:
+                prediction = model.predict(input_data)[0]
+                if prediction == 1:
+                    st.markdown("""
+                    <div class="result-card result-dnf">
+                        <div class="result-icon">🚩</div>
+                        <div class="result-label">Prediction Result</div>
+                        <div class="result-title-dnf">DNF</div>
+                        <div style='font-family: Barlow Condensed, sans-serif; font-size: 1.1rem;
+                                    color: #c0392b; letter-spacing: 0.1em; margin-top: 0.3rem;'>
+                            DID NOT FINISH
+                        </div>
+                        <div class="result-sub">The driver is predicted to retire from this race.</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    st.markdown("""
+                    <div class="result-card result-finish">
+                        <div class="result-icon">🏆</div>
+                        <div class="result-label">Prediction Result</div>
+                        <div class="result-title-finish">FINISH</div>
+                        <div style='font-family: Barlow Condensed, sans-serif; font-size: 1.1rem;
+                                    color: #27ae60; letter-spacing: 0.1em; margin-top: 0.3rem;'>
+                            RACE COMPLETE
+                        </div>
+                        <div class="result-sub">The driver is predicted to finish the race.</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+            except Exception as e:
+                st.error(f"⚠️ Prediction error: {e}")
+
+with tab_perf:
+    st.markdown('<div class="summary-header">📊 Model Performance Metrics</div>', unsafe_allow_html=True)
+    st.markdown("We tested the F1-DNF Predictor on the historical race database. Here are the results:")
+    
+    m_col1, m_col2, m_col3 = st.columns(3)
+    m_col1.metric("Overall Accuracy", f"{perf_acc*100:.1f}%")
+    m_col2.metric("DNF Precision", f"{perf_rep['DNF']['precision']*100:.1f}%")
+    m_col3.metric("FINISH Precision", f"{perf_rep['FINISH']['precision']*100:.1f}%")
+    
+    st.markdown("<br><hr>", unsafe_allow_html=True)
+    c1, c2 = st.columns(2)
+    with c1:
+        st.markdown("**Confusion Matrix**")
+        st.dataframe(pd.DataFrame(
+            perf_cm, 
+            columns=["Pred FINISH", "Pred DNF"], 
+            index=["Actual FINISH", "Actual DNF"]
+        ), use_container_width=True)
+    with c2:
+        st.markdown("**Classification Report**")
+        rep_df = pd.DataFrame(perf_rep).transpose()
+        st.dataframe(rep_df.style.format("{:.2f}"), use_container_width=True)
 
 # Footer
 st.markdown("""
